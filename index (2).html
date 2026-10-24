@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Enigma celor 10 grămezi</title>
+<style>
+:root{font-family:system-ui,Segoe UI,Arial,sans-serif;background:#f2f6fb;color:#1d3045}*{box-sizing:border-box}
+body{margin:0;padding:20px}main{max-width:1020px;margin:auto}h1{text-align:center;margin-bottom:4px}header p{text-align:center;color:#51657b}
+.panel{background:white;border-radius:18px;padding:22px;margin:18px 0;box-shadow:0 3px 15px #18314d12}
+.toolbar,.controls{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+button,select{font:inherit;border:1px solid #b8c9db;border-radius:10px;padding:10px 14px;background:white;color:#19314c;cursor:pointer}
+button:hover:not(:disabled){background:#e7f1ff}button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:#1462c5;color:white;border-color:#1462c5}.primary:hover:not(:disabled){background:#094d9f}
+.piles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.pile{border:1px solid #cbd9e8;border-radius:14px;padding:12px 8px;text-align:center;background:#f9fbff}
+.pile h3{font-size:1rem;margin:0 0 8px}.coins{font-size:24px;letter-spacing:-5px;color:#bd8833;margin:8px 0}
+.pile label{display:block;font-size:.85rem;color:#405c78;margin-bottom:5px}
+.piecegrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:9px auto}.piece{padding:0;min-width:0;width:100%;aspect-ratio:1;border-radius:50%;background:#e9bd63;border:2px solid #bd8732;color:#62420e;font-size:13px;font-weight:bold}.piece.chosen{background:#cbd5e1;border-color:#9baabd;color:#64748b}.piece:disabled{opacity:.7}.pile select{width:100%;max-width:100px;padding:7px}.pile .remaining{font-size:.78rem;color:#60748b;margin-top:5px}
+.scale{margin:16px auto;text-align:center;padding:20px;border:2px dashed #b5c8de;border-radius:16px;max-width:500px}
+.scale .icon{font-size:42px}.reading{font-size:2rem;font-weight:800;min-height:48px}
+.message{font-weight:650;text-align:center;min-height:26px}.success{color:#137b3d;font-size:1.65rem;background:#e8f8ed;padding:15px;border-radius:12px}
+.error{color:#b13a31}.detail{text-align:center;color:#526981}
+.guess{display:none;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.guess.show{display:flex}.history{line-height:1.6}
+@media(max-width:650px){body{padding:10px}.panel{padding:14px}.piles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pile{padding:10px 5px}.reading{font-size:1.6rem}}
+</style></head>
+<body><main><header><h1 id="title"></h1><p id="subtitle"></p></header>
+<div class="toolbar"><label for="lang" id="languageLabel"></label><select id="lang"><option value="ro">Română</option><option value="en">English</option></select></div>
+<section class="panel"><h2 id="instructionsTitle"></h2><p id="instructions"></p><p id="rules"></p></section>
+<section class="panel"><h2 id="chooseTitle"></h2><p id="chooseText"></p><div class="piles" id="piles"></div>
+<div class="controls"><button id="hint"></button><button id="weigh" class="primary"></button><button id="restart"></button></div>
+<div class="scale"><div class="icon">⚖️</div><div id="scaleTitle"></div><div class="reading" id="reading">—</div></div>
+<div class="message" id="message" aria-live="polite"></div>
+<div class="guess" id="guess"><label for="guessSelect" id="guessLabel"></label><select id="guessSelect"></select><button id="check" class="primary"></button></div>
+<p class="detail" id="explanation"></p></section>
+</main>
+<script>
+const tr={
+ro:{title:"Enigma celor 10 grămezi",subtitle:"O singură cântărire. O singură grămadă cu piese mai grele.",languageLabel:"Limbă:",instructionsTitle:"Provocarea",instructions:"Ai 10 grămezi, fiecare cu câte 10 piese. În nouă grămezi, fiecare piesă cântărește 10 g. Într-o singură grămadă, fiecare piesă cântărește 11 g. Nu știi care este grămada diferită.",rules:"Ai un cântar electronic și ai voie să îl folosești o singură dată. Poți pune pe cântar orice piese dorești, apoi le cântărești împreună. După cântărire, identifică grămada cu piesele de 11 g.",chooseTitle:"Pregătește cântărirea",chooseText:"Apasă pe piesele pe care vrei să le pui pe cântar. Le poți apăsa din nou pentru a le retrage.",pile:"Grămada",take:"Piese luate",remaining:"Rămase",selected:"Total piese selectate",expected:"Masa dacă toate ar avea 10 g",hint:"Indiciu",weigh:"Cântărește",restart:"Joc nou",scaleTitle:"Afișajul cântarului",guessLabel:"Care grămadă are piesele de 11 g?",choose:"Alege grămada",check:"Verifică",before:"Alege piesele și apasă pe cântărire.",empty:"Selectează cel puțin o piesă.",hintText:"Indiciu: ia un număr diferit de piese din fiecare grămadă: 1 din prima, 2 din a doua, ..., 10 din a zecea.",after:"Cântărirea a fost efectuată. Acum identifică grămada!",correct:"Felicitări! Ai identificat grămada corectă dintr-o singură cântărire!",wrong:"Nu este grămada corectă. Încearcă să deduci răspunsul din masa afișată.",reveal:"Grămada corectă este",explain:"Masa de referință (toate piesele de 10 g):",excess:"Diferența de masă:",ambiguous:"Această selecție nu garantează identificarea unică a grămezii. Poți totuși încerca să deduci răspunsul.",unique:"Selecția permite identificarea fără ambiguitate a grămezii.",none:"Alege o grămadă."},
+en:{title:"The Ten Piles Puzzle",subtitle:"One weighing. One pile with heavier pieces.",languageLabel:"Language:",instructionsTitle:"The challenge",instructions:"You have 10 piles with 10 pieces each. In nine piles every piece weighs 10 g. In one pile every piece weighs 11 g. You don't know which pile is different.",rules:"You have a digital scale and may use it only once. Put any pieces you like on the scale, then weigh them together. Identify the pile containing the 11 g pieces.",chooseTitle:"Prepare your weighing",chooseText:"Tap the pieces you want to put on the scale. Tap again to remove them.",pile:"Pile",take:"Pieces taken",remaining:"Left",selected:"Total selected pieces",expected:"Mass if all weighed 10 g",hint:"Hint",weigh:"Weigh",restart:"New game",scaleTitle:"Scale reading",guessLabel:"Which pile contains the 11 g pieces?",choose:"Choose a pile",check:"Check",before:"Select pieces and press weigh.",empty:"Select at least one piece.",hintText:"Hint: take a different number from each pile: 1 from the first, 2 from the second, ..., 10 from the tenth.",after:"The weighing is complete. Now identify the pile!",correct:"Congratulations! You identified the correct pile in one weighing!",wrong:"That's not the correct pile. Use the displayed weight to deduce the answer.",reveal:"The correct pile is",explain:"Reference mass (all pieces at 10 g):",excess:"Extra mass:",ambiguous:"This selection does not guarantee a unique answer. You can still try to deduce it.",unique:"Your selection allows you to identify the pile unambiguously.",none:"Choose a pile."}
+};
+let failedGuesses=0,wrongGuesses=new Set();
+let lang="ro",heavy=1+Math.floor(Math.random()*10),counts=Array(10).fill(0),weighed=false,won=false,weight=0,messageKey="before",hintShown=false;
+const $=id=>document.getElementById(id);
+function render(){const t=tr[lang];for(let k of ["title","subtitle","languageLabel","instructionsTitle","instructions","rules","chooseTitle","chooseText","hint","weigh","restart","scaleTitle","guessLabel","check"])$(k).textContent=t[k];
+$("piles").innerHTML="";
+for(let i=0;i<10;i++){let card=document.createElement("div");card.className="pile";let h=document.createElement("h3");h.textContent=t.pile+" "+(i+1);card.append(h);let coins=document.createElement("div");coins.className="piecegrid";for(let j=0;j<10;j++){let coin=document.createElement("button");coin.type="button";coin.className="piece"+(j<counts[i]?" chosen":"");coin.textContent="●";coin.setAttribute("aria-label",t.pile+" "+(i+1)+", "+t.take+" "+(j+1));coin.disabled=weighed;coin.onclick=()=>{counts[i]=j<counts[i]?counts[i]-1:counts[i]+1;render()};coins.append(coin)}card.append(coins);let rem=document.createElement("div");rem.className="remaining";rem.textContent=t.remaining+": "+(10-counts[i]);card.append(rem);$("piles").append(card)}
+$("weigh").disabled=weighed;$("hint").style.display=(!won && failedGuesses>=5)?"":"none";$("hint").disabled=won;$("guess").className="guess"+(weighed&&!won?" show":"");
+$("guessSelect").innerHTML="";let placeholder=document.createElement("option");placeholder.value="";placeholder.textContent=t.choose;$("guessSelect").append(placeholder);for(let i=1;i<=10;i++){let o=document.createElement("option");o.value=i;o.textContent=t.pile+" "+i;$("guessSelect").append(o)}
+$("reading").textContent=weighed?weight+" g":"—";
+$("message").textContent=won?t.correct:t[messageKey];$("message").className="message"+(won?" success":messageKey==="wrong"?" error":"");
+$("explanation").textContent=hintShown?t.hintText:"";
+}
+$("lang").onchange=e=>{lang=e.target.value;render()};
+$("hint").onclick=()=>{hintShown=true;$("explanation").textContent=tr[lang].hintText};
+$("weigh").onclick=()=>{if(!counts.some(n=>n)){messageKey="empty";render();return}weight=counts.reduce((s,n)=>s+10*n,0)+counts[heavy-1];weighed=true;messageKey="after";render()};
+$("check").onclick=()=>{let guess=Number($("guessSelect").value);if(!guess){messageKey="none";$("message").textContent=tr[lang].none;return}if(guess===heavy){won=true;$("guess").className="guess";$("message").textContent=tr[lang].correct;$("message").className="message success";$("explanation").textContent=tr[lang].reveal+" "+heavy+"."}else{if(!wrongGuesses.has(guess)){wrongGuesses.add(guess);failedGuesses++}if(failedGuesses>=5){$("hint").style.display="";$("hint").disabled=false}messageKey="wrong";$("message").textContent=tr[lang].wrong;$("message").className="message error"}};
+$("restart").onclick=()=>{heavy=1+Math.floor(Math.random()*10);counts=Array(10).fill(0);weighed=false;won=false;weight=0;messageKey="before";hintShown=false;failedGuesses=0;wrongGuesses=new Set();render()};
+render();
+</script></body></html>
